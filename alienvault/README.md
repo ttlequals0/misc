@@ -1,0 +1,1 @@
+/usr/bin/nfdump -R /var/cache/nfdump/flows/live/564DD437BBE0279DF013B34F2B17CF33/$(date +%Y-%m-%d)/nfcapd.$(date +%Y-%m-%d |sed 's/-//g')0000   -q -N -m -A srcip,dstip -o extended -f ./filter > flows_sample

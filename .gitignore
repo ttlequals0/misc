@@ -1,1 +1,9 @@
-*.bak
+puppet.conf
+puppetdb.conf
+node.rb
+auth.conf
+autosign.conf
+fileserver.conf
+.project
+routes.yaml
+puppetdb.conf

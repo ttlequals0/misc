@@ -1,0 +1,46 @@
+#ui-page #ui-page-theme-a #ui-page-active {
+    background-color:  #eafbff !important;
+}
+#title h1 {
+    text-align: center;
+    color: #4CAF50;
+}
+#title h2 {
+   text-align: center;
+}
+
+.search_box {
+    border-style: solid !important;
+    border-color: #4CAF50 !important;
+    border-width: 5px !important;
+}
+
+
+th {
+    background-color: #4CAF50;
+    color: white;
+}
+
+div {
+   width:auto;
+}
+.header .sign:after {
+  content:"+";
+  display:inline-block;      
+}
+.header.expand .sign:after {
+  content:"-";
+}
+
+tr:nth-child(even) {
+  background-color: #f2f2f2 
+}
+
+table {
+    border-collapse: collapse;
+}
+
+table, th, td {
+    border: 1px solid black;
+    padding: 10px;
+}
