@@ -1,0 +1,11 @@
+#!/bin/bash
+
+mkdir -p /mnt/nfs
+mount -o rw 192.168.101.117:/dhcp /mnt/nfs
+if [ ! -f /mnt/nfs/DHCP_Reservations_$(date "+%Y-%m-%d").csv ]; then
+touch /mnt/nfs/DHCP_Reservations_$(date "+%Y-%m-%d").csv
+echo IP,NAME,MAC >> /mnt/nfs/DHCP_Reservations_$(date "+%Y-%m-%d").csv
+fi
+ipaddr=$(ip addr |grep inet |grep 192 |awk {'print $2'} |sed 's/\/23//')
+mac=$(ip addr |grep ether |awk {'print $2'})
+echo $ipaddr,$(hostname),$mac |tr ":" " " |sed 's/\s//g' >> /mnt/nfs/DHCP_Reservations_$(date "+%Y-%m-%d").csv

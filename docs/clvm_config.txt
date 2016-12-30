@@ -1,0 +1,89 @@
+
+#FIND DAC NICS
+ethtool interface
+
+#CREATE BOND
+
+
+cat << 'EOF' >/etc/sysconfig/network-scripts/ifcfg-ens2f0
+DEVICE=ens2f0
+BOOTPROTO=none
+ONBOOT=yes
+MASTER=bond1
+SLAVE=yes
+USERCTL=no
+NM_CONTROLLED=no
+EOF
+
+cat << 'EOF' >/etc/sysconfig/network-scripts/ifcfg-eno3
+DEVICE=eno3
+BOOTPROTO=none
+ONBOOT=yes
+MASTER=bond1
+SLAVE=yes
+USERCTL=no
+NM_CONTROLLED=no
+EOF
+
+cat << 'EOF' >/etc/sysconfig/network-scripts/ifcfg-bond1
+DEVICE=bond1
+ONBOOT=yes
+IPADDR=219.0.204.41
+NETMASK=255.255.255.0
+TYPE=Ethernet
+BOOTPROTO=none
+USERCTL=no
+NM_CONTROLLED=no
+BONDING_OPTS="balance-rr miimon=100"
+EOF
+ ifup bond1
+
+iscsiadm -m iface -I iface0 --op=new
+iscsiadm -m iface -I iface0 --op=update -n iface.hwaddress -v $(ip a|grep -A 3 ens224 |grep -oP '[A-z 0-9]{2}\:[A-z 0-9]{2}\:[A-z 0-9]{2}\:[A-z 0-9]{2}\:[A-z 0-9]{2}\:[A-z 0-9]{2}' |head -n 1)
+iscsiadm -m iface
+
+
+#CLVM+GFS
+echo "219.0.203.41    node1" >> /etc/hosts
+echo "219.0.203.42    node2" >> /etc/hosts
+yum -y install iscsi-initiator-utils fence-agents-all lvm2-cluster gfs2-utils pcs corosync pacemaker
+cat /etc/iscsi/initiatorname.iscsi |awk -F "=" '{print $2}'
+iscsiadm -m discovery -t sendtargets -p 219.0.204.230
+iscsiadm -m node -l all #login
+systemctl disable pcsd.service
+systemctl stop pcsd.service
+lvmconf --disable-cluster
+init 6
+passwd hacluster
+pcs cluster auth node1 node2
+pcs cluster setup --name ha_cluster node1 node2
+pcs cluster start --all 
+pcs cluster enable --all
+#get fence device WWN
+ll /dev/disk/by-id/ |grep sdc
+pcs stonith delete scsi-shooter fence_scsi devices=/dev/disk/by-id/wwn-0x6000eb38e09e909400000000000001e1 meta provides=unfencing
+pcs property set no-quorum-policy=freeze
+pcs stonith show scsi-shooter
+pcs resource create dlm ocf:pacemaker:controld op monitor interval=30s on-fail=fence clone  interleave=true ordered=true 
+pcs resource create clvmd ocf:heartbeat:clvm op monitor interval=30s on-fail=fence clone interleave=true ordered=true 
+pcs constraint order start dlm-clone then clvmd-clone
+pcs constraint colocation add clvmd-clone with dlm-clone
+parted -s /dev/sdc unit s mklabel gpt
+parted -s /dev/sdc unit s mkpart primary 0% 100% set 1 lvm on
+chkconfig lvm2-lvmetad on
+service lvm2-lvmetad start
+pvcreate /dev/sdc1
+vgcreate -cy vg_cluster /dev/sdc1
+lvcreate -L5G -n kvm_lv vg_cluster
+mkfs.gfs2 -p lock_dlm -t ha_cluster:testfs -j 2 /dev/vg_data/lv_test
+pcs resource create gfs2_res Filesystem device="/dev/vg_data/lv_test" directory="/mnt/datastore" fstype="gfs2" options="noatime,nodiratime" op monitor interval=10s on-fail=fence clone interleave=true
+
+
+
+#VERIFY and TROUBLESHOOT
+iscsiadm -m session
+cat /proc/partitions
+pcs cluster status
+iscsiadm -m node -u #logout
+#view bond stats
+ cat /proc/net/bonding/bond1

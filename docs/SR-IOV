@@ -1,0 +1,61 @@
+wget https://support.solarflare.com/index.php?option=com_cognidox&file=SF-107601-LS-37_Solarflare_Linux_Utilities_RPM_64bit.zip&task=download&format=raw&id=1945
+sfupdate
+sfupdate --write
+sfboot sriov=enabled vf-count=16
+init 6
+wget https://support.solarflare.com/index.php?option=com_cognidox&file=SF-104979-LS-28_Solarflare_NET_driver_source_DKMS.zip&task=download&format=raw&id=1945&Itemid=11
+rpmbuild --rebuild x
+rpmbuild --rebuild x
+
+
+
+#VM Solarflare
+dracut --omit-drivers sfc --force
+wget http://10.204.0.28/pub/SF-107601-LS-37_Solarflare_Linux_Utilities_RPM_64bit.zip
+wget http://10.204.0.28/pub/SF-104979-LS-28_Solarflare_NET_driver_source_DKMS.zip
+sudo yum install kernel-devel-$(uname -r) gcc dkms --nogpgcheck -y
+sudo yum remove sfutils -y
+unzip SF-104979-LS-28_Solarflare_NET_driver_source_DKMS.zip
+unzip SF-107601-LS-37_Solarflare_Linux_Utilities_RPM_64bit.zip
+sudo rpm -ivh sfutils-4.7.1.1001-1.x86_64.rpm
+sudo rpm -ivh sfc-dkms-4.7.0.1031-0.sf.1.noarch.rpm
+init 0
+
+#VM Solarflare
+cd 
+tar -xvf i40evf-1.5.14.tar.gz
+cd i40evf-1.5.14
+
+/src
+sudo yum install kernel-devel-$(uname -r) gcc dkms --nogpgcheck -y
+sudo make install
+init 6
+
+ESXI 
+/opt/tt_tools/sfupdate --write
+/opt/tt_tools/sfboot firmware-variant=full-feature
+esxcli system module parameters set -m sfc -p max_vfs=20 #solarFlare
+esxcli system module parameters set -m i40e -p max_vfs=20 #intel xl170
+/opt/tt_tools/sfboot switch-mode=sriov vf-count=20
+
+
+
+
+VLAN=yes
+VLAN_NAME_TYPE=VLAN_PLUS_VID_NO_PAD
+PHYSDEV=eth1
+
+#Remove old entries from udev
+
+TOE_OPTIONS="rx tx sg tso ufo gso gro lro rxvlan txvlan rxhash"
+IFACE="eth1"
+for TOE_OPTION in $TOE_OPTIONS; do sudo ethtool --offload "$IFACE" "$TOE_OPTION" off &>/dev/null || true; done
+sudo ethtool -G $IFACE rx 4096
+sudo ethtool -G $IFACE tx 2048
+TOE_OPTIONS="rx tx sg tso ufo gso gro lro rxvlan txvlan rxhash"
+IFACE="eth0"
+for TOE_OPTION in $TOE_OPTIONS; do sudo ethtool --offload "$IFACE" "$TOE_OPTION" off &>/dev/null || true; done
+ethtool -G $IFACE rx 4096
+ethtool -G $IFACE tx 2048
+
+00:50:56:af:29:2b  00:50:56:af:3f:03

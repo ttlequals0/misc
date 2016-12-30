@@ -1,0 +1,61 @@
+wget http://tt-ch-lnxinf-1.ttnet.local/vmware/HP-ESXi-5.5.0-Update3-550.9.4.26-customized.zip
+
+__________________________________________________________________________________________________________________
+##INFRA##
+
+pssh -h chinfrhosts  --inline-stdout -A -l root -p 1  -x " -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t -t -C " "cd /vmfs/volumes/528bdb8c-8da85da1-1127-d89d672dcec0/updates && cp HP-ESXi-5.5.0-Update3-550.9.4.26-customized.zip \$(hostname).HP-ESXi-5.5.0-Update3-550.9.4.26-customized.zip"
+
+
+##restart berofe upgrade##
+ttnet-ch-esx-172.ttnet.local
+ttnet-ch-esx-148.ttnet.local
+
+cd /vmfs/volumes/528bdb8c-8da85da1-1127-d89d672dcec0/updates
+cp HP-ESXi-5.5.0-Update3-550.9.4.26-customized.zip $(hostname).HP-ESXi-5.5.0-Update3-550.9.4.26-customized.zip
+esxcli software acceptance set --level=CommunitySupported
+esxcli software vib install -d $(pwd)/$(hostname).HP-ESXi-5.5.0-Update3-550.9.4.26-customized.zip
+rm $(pwd)/$(hostname).HP-ESXi-5.5.0-Update3-550.9.4.26-customized.zip
+esxcli system shutdown reboot -r update
+
+#leave off#
+"CH-ALR-ICE-1"
+"CH-APF-APX-148"
+"chidebacs01"
+"CH-MBR-FIX-2"
+"TTNET-CH-ACSX"
+"TTNET-CH-VM-1"
+
+__________________________________________________________________________________________________________________
+##GATEWAY##
+
+pssh -h chgateway  --inline-stdout -A -l root -p 1  -x " -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t -t -C " "cd /vmfs/volumes/528e24bc-90cc8b11-9e24-ac162d80f7fc/updates && cp HP-ESXi-5.5.0-Update3-550.9.4.26-customized.zip \$(hostname).HP-ESXi-5.5.0-Update3-550.9.4.26-customized.zip"
+
+reboot all hosts
+
+Via alteris copy RxRing2Fix.vbs to VMs
+execute script RxRing2Fix.vbs
+shutdown VMs
+
+
+cd /vmfs/volumes/528e24bc-90cc8b11-9e24-ac162d80f7fc/updates
+cp HP-ESXi-5.5.0-Update3-550.9.4.26-customized.zip $(hostname).HP-ESXi-5.5.0-Update3-550.9.4.26-customized.zip
+esxcli software acceptance set --level=CommunitySupported
+esxcli software vib install -d $(pwd)/$(hostname).HP-ESXi-5.5.0-Update3-550.9.4.26-customized.zip
+rm $(pwd)/$(hostname).HP-ESXi-5.5.0-Update3-550.9.4.26-customized.zip
+esxcli system shutdown reboot -r update
+
+
+__________________________________________________________________________________________________________________
+##POST##
+$myESXiHosts = Get-VMHost -name *ch*| %{ $_ | Select Name,
+  @{N="ESXi Version";E={"$($_.Version) build $($_.Build)"}},
+  @{N="vCenter";E={$_.ExtensionData.CLient.ServiceUrl.Split('/')[2]}},
+  @{N="vCenter version";E={
+      $global:DefaultVIServers |
+      where {$_.Name -eq ($_.ExtensionData.CLient.ServiceUrl.Split('/')[2])} |
+      %{"$($_.Version) build $($_.Build)"}
+    }}
+} >> ch_audit.txt
+
+
+ 

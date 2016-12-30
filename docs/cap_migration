@@ -1,0 +1,52 @@
+
+cat /etc/iscsi/initiatorname.iscsi |awk -F "=" '{print $2}'
+##DISCOVER AND LOGIN TO SAN
+#sudo iscsiadm -m discovery -t sendtargets -p 10.143.16.15
+#sudo iscsiadm -m discovery -t sendtargets -p 10.143.16.16
+#sudo iscsiadm -m discovery -t sendtargets -p 10.143.16.17
+#sudo iscsiadm -m discovery -t sendtargets -p 10.143.16.18
+
+SUBNET="143"
+for i in 15 16 17 18; do sudo iscsiadm -m discovery -t sendtargets -p 10.${SUBNET}.16.${i}:3260 | while read PORTAL TARGET; do echo sudo iscsiadm -m node --targetname ${TARGET} -p ${PORTAL} --login; done; done |sh
+
+##VERIFY SAN CONNECTIONS
+sudo multipath -ll
+ls -l /dev/disk/by-path/
+
+##CREATE VOLUME
+sudo parted -a optimal /dev/mapper/mpathc
+mklabel gpt 
+mkpart primary 0% 100%
+set 1 lvm on
+print
+quit
+
+##CREATE LVM
+sudo  pvcreate /dev/mapper/mpathcp1
+
+##FIND VG_NAME
+sudo  vgdisplay
+
+##EXTEND VG
+sudo vgextend vg_sg0cap46_san /dev/mapper/mpathcp1
+
+##VERIFY EXTENDED VG
+sudo vgdisplay 
+
+##MOVE TO NEW SAN
+screen -L
+sudo pvmove  /dev/mapper/mpathbp1
+
+##REMOVE OLD LVM
+sudo vgreduce vg_sg0cap46_san /dev/mapper/mpathbp1
+sudo pvremove /dev/mapper/mpathbp1
+
+## VERIFY TARGETS TO BE REMOVED
+sudo iscsiadm -m session | awk '{ split($3,target,":"); split(target[1],ip,"."); if( ip[4] == 11 || ip[4] == 12 || ip[4] == 13 || ip[4] == 14 ){ print "sudo iscsiadm -m node -T " $4 " --portal " $3 " -u"; print "sudo iscsiadm -m discovery -p " $3 " --op=delete" }}'
+
+## REMOVE OLD TARGETS 
+sudo iscsiadm -m session | awk '{ split($3,target,":"); split(target[1],ip,"."); if( ip[4] == 11 || ip[4] == 12 || ip[4] == 13 || ip[4] == 14 ){ print "sudo iscsiadm -m node -T " $4 " --portal " $3 " -u"; print "sudo iscsiadm -m discovery -p " $3 " --op=delete" }}' | bash
+
+##VERIFY SAN CONNECTIONS
+sudo multipath -ll
+ls -l /dev/disk/by-path/

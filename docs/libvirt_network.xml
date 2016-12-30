@@ -1,0 +1,66 @@
+<network>
+  <name>ovs-network</name>
+  <forward mode='bridge'/>
+  <bridge name='ovsbr0'/>
+  <virtualport type='openvswitch'/>
+  <portgroup name='vlan-01' default='yes'>
+  </portgroup>
+  <portgroup name='vlan-400'>
+    <vlan>
+      <tag id='400'/>
+    </vlan>
+  </portgroup>
+  <portgroup name='vlan-432'>
+    <vlan>
+      <tag id='432'/>
+    </vlan>
+  </portgroup>
+  <portgroup name='vlan-436'>
+    <vlan>
+      <tag id='436'/>
+    </vlan>
+  </portgroup>  
+  <portgroup name='vlan-448'>
+    <vlan>
+      <tag id='448'/>
+    </vlan>
+  </portgroup>
+  <portgroup name='vlan-464'>
+    <vlan>
+      <tag id='464'/>
+    </vlan>
+  </portgroup>
+  <portgroup name='vlan-452'>
+    <vlan>
+      <tag id='452'/>
+    </vlan>
+  </portgroup>   
+  <portgroup name='vlan-104'>
+    <vlan>
+      <tag id='104'/>
+    </vlan>
+  </portgroup>
+  <portgroup name='spirent-vlan-100'>
+    <vlan>
+      <tag id='100'/>
+    </vlan>
+  </portgroup>
+  <portgroup name='spirent-vlan-200'>
+    <vlan>
+      <tag id='200'/>
+    </vlan>
+  </portgroup>      
+  <portgroup name='vlan-all'>
+    <vlan trunk='yes'>
+      <tag id='400'/>
+      <tag id='432'/>
+      <tag id='436'/>
+      <tag id='448'/> 
+      <tag id='452'/>
+      <tag id='464'/>   
+      <tag id='100'/>  
+      <tag id='104'/>  
+      <tag id='200'/>                                  
+    </vlan>
+  </portgroup>
+</network>

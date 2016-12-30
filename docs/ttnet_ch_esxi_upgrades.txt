@@ -1,0 +1,251 @@
+#AS ROOT
+yum -y install wget openssl-devel gcc make python-devel python-pip openssl-devel kernel-devel graphviz kernel-debug-devel autoconf automake rpm-build redhat-rpm-config libtool
+adduser ovs
+su - ovs
+
+#AS OVS USER
+mkdir -p ~/rpmbuild/SOURCES
+wget http://openvswitch.org/releases/openvswitch-2.5.0.tar.gz
+cp openvswitch-2.5.0.tar.gz ~/rpmbuild/SOURCES/
+tar xfz openvswitch-2.5.0.tar.gz
+sed 's/openvswitch-kmod, //g' openvswitch-2.5.0/rhel/openvswitch.spec > openvswitch-2.5.0/rhel/openvswitch_no_kmod.spec
+rpmbuild -bb --nocheck openvswitch-2.5.0/rhel/openvswitch_no_kmod.spec
+exit
+
+
+#AS ROOT
+mkdir /etc/openvswitch
+yum localinstall /home/ovs/rpmbuild/RPMS/x86_64/openvswitch-2.5.0-1.x86_64.rpm -y
+
+yum install http://10.204.0.28/pub/openvswitch-2.5.1-1.x86_64.rpm -y 
+
+yum install policycoreutils-python -y
+semanage fcontext -a -t openvswitch_rw_t "/etc/openvswitch(/.*)?"
+systemctl start openvswitch.service
+chkconfig openvswitch on
+
+#CHECK OPENVSWITCH
+ovs-vsctl -V
+
+init 6
+_____________________________________________________________________________________________________________________
+#LIBVIRT 
+ovs-vsctl add-br ovsbr0
+ovs-vsctl add-bond ovsbr0 bond0 ens2f0 ens2f1d1 vlan_mode=trunk bond_mode=balance-slb
+ovs-vsctl set Bridge ovsbr0 mcast_snooping_enable=true
+
+create xml
+virsh net-destroy ovs-network ; virsh net-define ovsnet.xml; virsh net-start ovs-network; virsh net-autostart ovs-network
+
+cat  << 'EOF' >/etc/sysconfig/network-scripts/ifcfg-ovsbr0
+DEVICE="ovsbr0"
+ONBOOT="yes"
+DEVICETYPE="ovs"
+TYPE="OVSBridge"
+BOOTPROTO="none"
+HOTPLUG="no"
+EOF
+
+---------------------------------------------------------------------------------------------------------------------
+MOCK 7x
+ovs-vsctl show
+#find fiber interfaces
+ ethtool ens2f1
+
+
+
+ovs-vsctl add-br br0
+ovs-vsctl add-bond br0 bond0 ens2f1 eno3 vlan_mode=trunk bond_mode=balance-slb
+ovs-vsctl add-br vlan120 br0 120
+ovs-vsctl add-br vlan122 br0 122
+ovs-vsctl add-br vlan30 br0 30
+ovs-vsctl add-br vlan180 br0 180
+ovs-vsctl add-br vlan181 br0 181
+ovs-vsctl add-br vlan182 br0 182
+ovs-vsctl add-br vlan183 br0 183
+ovs-vsctl add-br vlan184 br0 184
+ovs-vsctl add-br vlan197 br0 197
+ovs-vsctl add-br vlan251 br0 251
+ovs-vsctl add-br vlan252 br0 252
+ovs-vsctl add-br vlan253 br0 253
+ovs-vsctl add-br vlan254 br0 254
+ovs-vsctl add-br vlan300 br0 300
+ovs-vsctl add-br vlan904 br0 904
+ovs-vsctl add-br vlan903 br0 903
+ovs-vsctl add-br vlan902 br0 902
+ovs-vsctl add-br vlan811 br0 811
+ovs-vsctl add-port vlan904 mgmt
+ovs-vsctl set Bridge br0 mcast_snooping_enable=true
+
+for i in $(ifconfig -a | sed 's/[ \t].*//;/^\(lo\|\)$/d' |sed 's/://') ; do ifconfig $i up; done
+
+cat  << 'EOF' >/etc/sysconfig/network-scripts/ifcfg-mgmt
+DEVICE=mgmt
+ONBOOT=yes
+DEVICETYPE=ovs
+TYPE=OVSIntPort
+OVS_BRIDGE=vlan904
+BOOTPROTO=static
+IPADDR=219.0.203.42
+NETMASK=255.255.255.0
+GAREWAY=219.0.203.1
+HOTPLUG=no
+EOF
+
+cat << 'EOF' >/etc/sysconfig/network-scripts/route-mgmt
+default via 219.0.203.1 dev mgmt
+EOF
+
+ifdown ens2f1.904 && ifup mgmt 
+sed -i -e 's/ONBOOT\=yes/ONBOOT\=no/g' /etc/sysconfig/network-scripts/ifcfg-ens2f1.904
+
+
+____________________________________________________________________________________________________________________
+MOCK TT
+
+ovs-vsctl add-br br0
+ovs-vsctl add-port br0 ens1f1d1 vlan_mode=trunk
+ovs-vsctl add-br vlan400 br0 400
+ovs-vsctl add-br vlan432 br0 432
+ovs-vsctl add-br vlan436 br0 436
+ovs-vsctl add-br vlan448 br0 448
+ovs-vsctl add-br vlan452 br0 452
+ovs-vsctl add-br vlan464 br0 464
+
+
+
+
+ovs-vsctl add-br mgmt
+ovs-vsctl add-port mgmt ovs
+
+cat  << 'EOF' >/etc/sysconfig/network-scripts/ifcfg-mgmt
+DEVICE=mgmt
+ONBOOT=yes
+DEVICETYPE=ovs
+TYPE=OVSIntPort
+OVS_BRIDGE=mgmt
+BOOTPROTO=static
+IPADDR=10.206.0.31
+NETMASK=255.255.252.0
+GAREWAY=10.206.0.1
+HOTPLUG=no
+EOF
+
+echo GATEWAY=10.206.0.1 >> /etc/sysconfig/network
+ovs-vsctl add-br vlan400 mgmt 400
+ovs-vsctl set Bridge br0 mcast_snooping_enable=true
+
+
+ifconfig vlan400 up
+ifconfig vlan432 up
+ifconfig vlan436 up
+ifconfig vlan448 up
+ifconfig vlan452 up
+ifconfig vlan464 up
+
+
+cat  << 'EOF' >/etc/sysconfig/network-scripts/ifcfg-ens1f0
+DEVICE=ens1f0
+ONBOOT=yes
+DEVICETYPE=ovs
+TYPE=OVSPort
+OVS_BRIDGE=mgmt
+BOOTPROTO=none
+HOTPLUG=no
+EOF
+
+----------------------------------------------------------------------------------------------------------------------
+
+<interface type='bridge'>
+   	<mac address='52:54:00:fb:00:01'/>
+   	<source bridge='ovsbr0'/>
+   	<virtualport type='openvswitch'/>
+  	<model type='virtio'/>
+	<address type='pci' domain='0x0000' bus='0x00' slot='0x03' function='0x0'/>
+</interface>
+
+   <interface type='bridge'>
+      <mac address='52:54:00:86:39:06'/>
+      <source bridge='vlan400'/>
+      <virtualport type='openvswitch'/>
+      <model type='virtio'/>
+      <boot order='1'/>
+      <address type='pci' domain='0x0000' bus='0x00' slot='0x03' function='0x0'/>
+    </interface>
+
+----------------------------------------------------------------------------------------------------------------------
+
+
+sudo ip link set dev vlan811  allmulticast off
+
+ovs-vsctl add-port br0 vlan904 tag=904 -- set interface vlan904 type=internal
+ovs-vsctl add-port br0 vlan811 tag=811 -- set interface vlan811 type=internal
+ovs-vsctl add-port br0 vlan301 tag=301 -- set interface vlan301 type=internal
+ovs-vsctl add-port mgmt vlan400.0 tag=400 -- set interface vlan400 type=internal
+
+ovs-vsctl set port br0 vlan_mode=native-untagged
+
+
+Create and remove bridge
+	ovs-vsctl add-br br0
+	ovs-vsctl del-br EXT
+VLAN
+ ovs-vsctl add-port br0 vlan904 tag=904 -- set interface vlan904 type=internal
+ ovs-vsctl add-port br0 vlan811 tag=811 -- set interface vlan811 type=internal
+ NOT NEEDED
+	 ovs-vsctl add-port br0 ens2f0 trunks=904
+	 ovs-vsctl add-port br0 ens2f1 trunks=904
+
+Create bond  
+	ovs-vsctl add-bond br0 bond0 ens2f0 ens2f1d1  vlan_mode=trunk bond_mode=balance−slb mcast-snooping-flood=true
+	ovs-vsctl set port bond0  bond_mode=active-backup 
+		ovs-vsctl add-bond br0 bond0 ens2f0 ens2f1 trunks=all
+Enable LACP
+	ovs-vsctl set port bond0 lacp=active
+show bond
+	ovs-appctl bond/show bond0
+
+Change multicsat options
+	ovs-vsctl  set port bond0 other_config:mcast-snooping-flood-unregistered=false
+    ovs-vsctl  set Bridge br0 other_config:mcast-snooping-flood-unregistered=false
+    ovs-vsctl  set Bridge br0 other_config:mcast-snooping_set-port-flood-reports=true
+
+    ovs-vsctl set Bridge br0 other_config:mcast-snooping-aging-time=30
+	ovs-vsctl set port bond0 other_config:mcast-snooping-aging-time=300
+
+	ovs\-vsctl set Bridge br0 other_config:mcast-snooping-table-size=2048
+
+	   
+        ovs\-vsctl set port bond0 mcast_snooping_enable=true
+
+ovs\-vsctl set Bridge br0 other_config:forward-bpdu=true
+
+Show MAc Table
+	ovs-appctl fdb/show br0 #MAC table
+Show MCAST table
+	ovs-appctl mdb/show br0 #show MCAST
+Show Bridge info
+	ovs-vsctl list bridge
+Default Flows
+	 ovs-ofctl add-flow br0 "table=0, priority=0, actions=NORMAL"
+Multicat test
+	ovs-appctl ofproto/trace br0 in_port=1,dl_dst=90:12:34:56:78:90,dl_vlan=811
+	ovs-appctl dpctl/dump-flows
+
+Tshark
+	tshark -i br0 igmp
+
+OMPING
+	omping -m 239.255.1.90 10.206.50.51 10.206.48.33
+	 omping -m 239.1.1.90 219.0.203.44 219.0.203.45
+
+jgroups
+	java -cp ~/jgroups.jar org.jgroups.tests.McastReceiverTest -mcast_addr 239.1.1.10 -port 1024
+	java -cp ~/jgroups.jar org.jgroups.tests.McastSenderTest  -mcast_addr -mcast_addr 239.1.1.10 -port 1024
+
+	 ovs-ofctl add-flow br0 \
+    "table=0, dl_src=01:00:00:00:00:00/01:00:00:00:00:00, actions=NORMAL
+
+
+
+

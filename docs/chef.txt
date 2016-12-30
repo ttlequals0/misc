@@ -1,0 +1,9 @@
+git clone debesys repo
+git branch develope
+git init submods
+git checkout -b feature/ops<jira number>
+ttknofe cookbookn <name>
+git status
+
+#CHEF
+edit meta file change  cookbook version

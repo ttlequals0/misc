@@ -1,0 +1,43 @@
+Sydney
+
+
+PRE
+ttknife ssh  -a ipaddress "chef_environment:ext-*-cassandra AND recipe:cassandra_server\:\:colo AND hostname:sy*" "hostname" --config ~/.chef/knife.external.rb 
+sudo service dse stop
+sudo init 0
+$mc = New-Object VMware.Vim.VirtualMachineConfigSpec ; $mc.memoryReservationLockedToMax = $false ; (Get-VM sy*).ExtensionData.ReconfigVM_Task($mc)
+Get-VM sy* | Get-VMResourceConfiguration | Set-VMResourceConfiguration -MemReservationMB 1024
+
+
+
+cd /vmfs/volumes/52e536eb-6add1638-8c1b-38eaa73323fc/updates
+cp HP-ESXi-5.5.0-Update3-550.9.4.26-customized.zip $(hostname).HP-ESXi-5.5.0-Update3-550.9.4.26-customized.zip
+esxcli software acceptance set --level=CommunitySupported
+esxcli software vib install -d $(pwd)/$(hostname).HP-ESXi-5.5.0-Update3-550.9.4.26-customized.zip
+rm $(pwd)/$(hostname).HP-ESXi-5.5.0-Update3-550.9.4.26-customized.zip
+esxcli system shutdown reboot -r update
+cp /vmfs/volumes/52e536eb-6add1638-8c1b-38eaa73323fc/updates/CP027776.zip /tmp
+cd /tmp
+unzip CP027776.zip 
+./CP027776.vmexe 
+esxcli system shutdown reboot -r update
+
+POST
+$mc = New-Object VMware.Vim.VirtualMachineConfigSpec ; $mc.memoryReservationLockedToMax = $true ; (Get-VM sg*).ExtensionData.ReconfigVM_Task($mc)
+screen -L
+nodetool repair -pr
+CTRL + A + D to detach screen
+watch nodetool compactionstats
+
+
+Send an email to the SI team to let them know that the repair process has been executed on the give DC hosts.
+
+$myESXiHosts = Get-VMHost -name *ny*| %{ $_ | Select Name,
+  @{N="ESXi Version";E={"$($_.Version) build $($_.Build)"}},
+  @{N="vCenter";E={$_.ExtensionData.CLient.ServiceUrl.Split('/')[2]}},
+  @{N="vCenter version";E={
+      $global:DefaultVIServers |
+      where {$_.Name -eq ($_.ExtensionData.CLient.ServiceUrl.Split('/')[2])} |
+      %{"$($_.Version) build $($_.Build)"}
+    }}
+}

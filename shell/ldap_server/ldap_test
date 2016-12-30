@@ -1,0 +1,9 @@
+#!/bin/bash
+
+if [ -z ${1+x} ]; then
+	echo "please specify ldap server IP"
+else
+	ldapsearch -h ${1} -D "uid=$(whoami),ou=OU,ou=Support,ou=Users,ou=CHI,ou=US,dc=int,dc=dc,dc=local" -W uid=user
+fi
+
+

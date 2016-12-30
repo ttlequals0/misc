@@ -1,0 +1,99 @@
+#Upload Packages
+mkdir -p ~/netronome
+
+scp kernel-3.10.0-327.22.2.el7.x86_64.rpm kernel-devel-3.10.0-327.22.2.el7.x86_64.rpm perf-3.10.0-327.22.2.el7.x86_64.rpm python-perf-3.10.0-327.22.2.el7.x86_64.rpm
+cd ~/netronome 
+yum localinstall ./* -y
+
+#INSTALL ALL OF THE THINGS 
+yum install epel-release -y
+
+yum install make autoconf automake libtool gcc gcc-c++ libpcap-devel \
+readline-devel jansson-devel libevent libevent-devel libtool openssl-devel \
+bison flex gawk hwloc gettext texinfo kernel-devel rpm-build \
+redhat-rpm-config graphviz python-devel python python-devel tcl-devel \
+tk-devel texinfo dkms zip unzip pkgconfig wget patch minicom libusb \
+libusb-devel psmisc libnl3-devel libftdi pciutils kernel-headers   -y 
+
+## PATCH KERNEL
+rpm -Uvh kernel-3.10.0-327.22.2.el7.x86_64.rpm
+rpm -Uvh kernel-devel-3.10.0-327.22.2.el7.x86_64.rpm
+rpm -Uvh kernel-headers-3.10.0-327.22.2.el7.x86_64.rpm
+rpm -Uvh perf-3.10.0-327.22.2.el7.x86_64.rpm
+rpm -Uvh python-perf-3.10.0-327.22.2.el7.x86_64.rpm
+
+## ENABLE IOMMU
+vi /etc/default/grub
+GRUB_CMDLINE_LINUX="intel_iommu=on iommu=pt"
+sudo grub2-mkconfig -o /boot/grub2/grub.cfg
+grub2-mkconfig -o /etc/grub2-efi.cfg # EFI
+ grep "^menuentry" /etc/grub2-efi.cfg | cut -d "'" -f2
+vers
+
+
+## INSTALL DRIVERS
+tar xvf agilio-ovs-2.1r3587-2016-01-26.tar.gz
+cd agilio-ovs-2.1r3587-2016-01-26
+make clean_install
+
+##HOST
+
+/opt/netronome/libexec/dpdk_nic_bind.py -b nfp_netvf 06:08.4
+modprobe vfio-pci
+echo "19ee 6003" > /sys/bus/pci/drivers/vfio-pci/new_id
+ethtool -i sdn_v0.4
+
+/opt/netronome/libexec/dpdk_nic_bind.py -b vfio-pci 06:08.4
+
+##OVS
+
+ovs-vsctl add-br br0
+ovs-vsctl set Bridge br0 protocols=OpenFlow13
+ovs-vsctl add-port br0 sdn_v0.4 -- set Interface sdn_v0.4 ofport_request=4
+ovs-vsctl add-port br0 sdn_v0.5 -- set Interface sdn_v0.4 ofport_request=5
+ovs-ofctl -OOpenFlow13 add-flow br0 actions=NORMAL
+ovs-vsctl add-bond br0 bond0 sdn_p0 sdn_p1 
+
+ovs-vsctl set port bond0 bond_mode=balance-tcp
+
+## VM SETUP
+yum install epel-release -y
+yum install make autoconf automake libtool gcc gcc-c++ libpcap-devel \
+readline-devel jansson-devel libevent libevent-devel libtool openssl-devel \
+bison flex gawk hwloc gettext texinfo kernel-devel rpm-build \
+redhat-rpm-config graphviz python-devel python python-devel tcl-devel \
+tk-devel texinfo dkms zip unzip pkgconfig wget patch minicom libusb \
+libusb-devel psmisc libnl3-devel libftdi pciutils kernel-headers   -y 
+
+
+
+/usr/local/bin/trafgen -n 1 -c 0xff  -w 0000:00:09.0 -w 0000:00:0a.0 -w 0000:00:0b.0 -w 0000:00:0c.0 -- -p 0xf --benchmark --src-mac 00:11:22:33:44:00 --dst-mac 00:44:33:22:11:00 --src-ip 1.0.0.0 --dst-ip 2.0.0.0 --packet-size 64 -r 0 -t 16 --flows-per-stream 2000 --mac-stride 2000 --ip-stride 2000 --streams 32 --bursts-per-stream 10
+
+
+/usr/local/bin/trafgen -n 1 -c 0xf  -w 0000:00:09.0  -- -p 0x1 --benchmark --src-mac 00:11:22:33:44:00 --dst-mac 00:44:33:22:11:00 --src-ip 1.0.0.0 --dst-ip 2.0.0.0 --packet-size 64  --flows-per-stream 2000 --mac-stride 2000 --ip-stride 2000 --streams 32 --bursts-per-stream 10
+
+
+#Bind drivers 
+modprobe nfp_uio
+ /opt/netronome/srcpkg/dpdk-ns/tools/dpdk_nic_bind.py --bind nfp_uio 00:09.0
+ /opt/netronome/srcpkg/dpdk-ns/tools/dpdk_nic_bind.py --bind nfp_uio 00:0a.0
+ /opt/netronome/srcpkg/dpdk-ns/tools/dpdk_nic_bind.py --bind nfp_uio 00:0b.0
+ /opt/netronome/srcpkg/dpdk-ns/tools/dpdk_nic_bind.py --bind nfp_uio 00:0c.0
+ /opt/netronome/srcpkg/dpdk-ns/tools/dpdk_nic_bind.py --status
+
+
+ ./setup-vm-hugepages.sh
+
+
+cat  << 'EOF' >/etc/sysconfig/network-scripts/ifcfg-eth0
+DEVICE=eth0
+TYPE=Ethernet
+BOOTPROTO=none
+VLAN=yes
+IPADDR=192.168.100.203
+NERMASK=255.255.255.0
+GATEWAY=192.168.100.1
+USERCTL=no
+NM_CONTROLLED=no
+EOF
+

@@ -1,0 +1,143 @@
+INSTALL CENTOS
+#MOUNT ISO
+http://10.206.0.28/pub/CentOS-7-x86_64-Minimal-1503-01.iso
+## MOUNT DD
+http://10.206.0.28/pub/hpvsa-1.2.14-100.rhel7u1.x86_64.dd.img
+
+#BOOT PERAMS
+ modprobe.blacklist=ahci dd
+
+
+_______________________________________________________________________________________________________________________________
+
+BASIC NETWORKING
+
+ethtool <interfdace> #look for fibre 
+
+
+cat  << 'EOF' >/etc/sysconfig/network-scripts/ifcfg-eno1
+DEVICE=eno1
+TYPE=Ethernet
+BOOTPROTO=none
+VLAN=yes
+IPADDR=10.204.0.56
+NERMASK=255.255.252.0
+GATEWAY=10.204.0.1
+USERCTL=no
+NM_CONTROLLED=no
+EOF
+
+sed -i -e 's/ONBOOT\=no/ONBOOT\=yes/g' /etc/sysconfig/network-scripts/ifcfg-*
+sed -i -e '$aNM_CONTROLLED=no' /etc/sysconfig/network-scripts/ifcfg-*
+sed -i -e '$anameserver 8.8.8.8' /etc/resolv.conf
+
+ll
+sed -i -e '/TYPE=Ethernet/d' /etc/sysconfig/network-scripts/ifcfg-*
+sed -i -e '/BOOTPROTO=dhcp/d' /etc/sysconfig/network-scripts/ifcfg-*
+sed -i -e '/DEFROUTE=yes/d' /etc/sysconfig/network-scripts/ifcfg-*
+sed -i -e '/PEERDNS=yes/d' /etc/sysconfig/network-scripts/ifcfg-*
+sed -i -e '/PEERROUTES=yes/d' /etc/sysconfig/network-scripts/ifcfg-*
+sed -i -e '/IPV4_FAILURE_FATAL=no/d' /etc/sysconfig/network-scripts/ifcfg-*
+sed -i -e '/IPV6INIT=yes/d' /etc/sysconfig/network-scripts/ifcfg-*
+sed -i -e '/IPV6_AUTOCONF=yes/d' /etc/sysconfig/network-scripts/ifcfg-*
+sed -i -e '/IPV6_DEFROUTE=yes/d' /etc/sysconfig/network-scripts/ifcfg-*
+sed -i -e '/IPV6_PEERDNS=yes/d' /etc/sysconfig/network-scripts/ifcfg-*
+sed -i -e '/IPV6_PEERROUTES=yes/d' /etc/sysconfig/network-scripts/ifcfg-*
+sed -i -e '/IPV6_FAILURE_FATAL=no/d' /etc/sysconfig/network-scripts/ifcfg-*
+
+
+echo 1 >/sys/kernel/mm/ksm/run
+echo 1000 >/sys/kernel/mm/ksm/sleep_millisecs
+_______________________________________________________________________________________________________________________________
+#KVM INSTALL
+yum update -y
+yum install qemu-kvm qemu-img virt-manager libvirt libvirt-python libvirt-client virt-install virt-viewer qemu-system-x86-2.0.0-1.el7.6.x86_64 epel-release net-tools xauth pciutils tcpdump telnet wget kvm virt-manager  -y
+
+sed -i s/SELINUX=enforcing/SELINUX=disabled/g /etc/selinux/config
+
+
+systemctl mask firewalld
+systemctl stop firewalld
+
+systemctl stop NetworkManager
+yum -y erase NetworkManager
+lsmod | grep kvm 
+systemctl start libvirtd 
+systemctl enable libvirtd 
+chkconfig libvirtd on
+#test install
+	virsh -c qemu:///system list
+
+#NETWORKING
+chkconfig network on
+echo "net.ipv4.ip_forward = 1"|sudo tee -a /etc/sysctl.d/99-kvm.conf
+echo "net.bridge.bridge-nf-call-ip6tables = 0"|sudo tee -a /etc/sysctl.d/99-kvm.conf
+echo "net.bridge.bridge-nf-call-iptables = 0"|sudo tee -a  /etc/sysctl.d/99-kvm.conf
+echo "net.bridge.bridge-nf-call-arptables = 0"|sudo tee -a /etc/sysctl.d/99-kvm.conf
+echo "net.ipv4.conf.virbr0-nic.rp_filter = 0"|sudo tee -a /etc/sysctl.d/99-kvm.conf
+echo "net.ipv4.conf.default.force_igmp_version = 2" |sudo tee -a /etc/sysctl.d/99-kvm.conf
+echo "net.ipv4.conf.all.force_igmp_version = 2" |sudo tee -a /etc/sysctl.d/99-kvm.conf
+sysctl -p /etc/sysctl.d/99-kvm.conf
+
+
+modprobe 8021q
+
+cat  << 'EOF' >/etc/sysconfig/modules/8021q.modules
+	!/bin/sh
+    exec /sbin/modprobe 8021q >/dev/null 2>&1
+EOF
+
+chmod +x /etc/sysconfig/modules/8021q.modules
+
+#MONITORING 
+yum install zlib-devel libuuid-devel libmnl-devel gcc make git autoconf autogen automake pkgconfig curl jq nodejs -y
+cd /tmp
+git clone https://github.com/firehol/netdata.git --depth=1
+cd netdata
+./netdata-installer.sh
+systemctl daemon-reload
+systemctl enable netdata
+sed -i -e 's/#\ port\ =\ 19999/port\ =\ 8081/' /etc/netdata/netdata.conf
+sed -i -e 's/#\ bind\ socket\ to\ IP\ =\ \*/bind socket to IP =\ \*/' /etc/netdata/netdata.conf
+...
+cd
+
+#SOLARFLARE
+cd
+wget http://10.204.0.28/pub/SF-107601-LS-37_Solarflare_Linux_Utilities_RPM_64bit.zip
+wget http://10.204.0.28/pub/SF-104979-LS-28_Solarflare_NET_driver_source_DKMS.zip
+wget http://www.openonload.org/download/openonload-201509-u1.tgz
+sudo yum install kernel-devel-$(uname -r) epegcc dkms libpcap-devel --nogpgcheck -y
+sudo yum remove sfutils -y
+unzip SF-104979-LS-28_Solarflare_NET_driver_source_DKMS.zip
+unzip SF-107601-LS-37_Solarflare_Linux_Utilities_RPM_64bit.zip
+tar xvf openonload-201509-u1.tgz
+sudo rpm -ivh sfutils-4.7.1.1001-1.x86_64.rpm
+./openonload-201509-u1/scripts/onload_install
+ onload_tool reload
+sudo rpm -ivh sfc-dkms-4.7.0.1031-0.sf.1.noarch.rpm
+
+TOE_OPTIONS="rx tx sg tso ufo gso gro lro rxvlan txvlan rxhash"
+IFACE="ens2f0"
+for TOE_OPTION in $TOE_OPTIONS; do sudo ethtool --offload "$IFACE" "$TOE_OPTION" off &>/dev/null || true; done
+sudo ethtool -G $IFACE rx 4096
+sudo ethtool -G $IFACE tx 2048
+TOE_OPTIONS="rx tx sg tso ufo gso gro lro rxvlan txvlan rxhash"
+IFACE="ens2f1"
+for TOE_OPTION in $TOE_OPTIONS; do sudo ethtool --offload "$IFACE" "$TOE_OPTION" off &>/dev/null || true; done
+ethtool -G $IFACE rx 4096
+ethtool -G $IFACE tx 2048
+
+
+
+
+
+
+#CONNECT 
+connect to virt-manager
+ virt-manager -c qemu+ssh://root@10.204.0.56/system?socket=/var/run/libvirt/libvirt-sock
+
+
+
+
+

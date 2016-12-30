@@ -1,0 +1,99 @@
+yum install bridge-utils
+
+	SIMPLE BRIDGE
+	 	ifcfg-br0
+			DEVICE="br0"
+			TYPE=Bridge
+			DELAY=0
+			ONBOOT="yes"
+			BOOTPROTO=static
+			IPADDR=219.0.211.4
+			NETMASK=255.255.255.0
+			GATEWAY=219.0.211.1
+			DNS1=8.8.8.8
+			PEERDNS="yes"
+			NM_CONTROLLED=no
+
+	BONDED BRIDGED VLAN SETUP
+		ifcfg-ens2f0
+			DEVICE="ens2f0"
+			ONBOOT="no"
+			MASTER="bond1"
+			SLAVE="yes"
+		ifcfg-ens2f1
+			DEVICE="ens2f1"
+			ONBOOT="no"
+			MASTER="bond1"
+			SLAVE="yes"
+		ifcfg-bond1
+			DEVICE="bond1"
+			ONBOOT="yes"
+			BONDING_OPTS=
+			#BRIDGE="br904"
+			NM_CONTROLLED=no
+		ifcfg-bond1.904
+			DEVICE=bond1.904
+			BOOTPROTO=none
+			ONBOOT="yes"
+			VLAN=yes
+			NM_CONTROLLED=no
+			BRIDGE=br904
+		ifcfg-br904
+			DEVICE="br904"
+			TYPE=Bridge
+			DELAY=0
+			ONBOOT="yes"
+			BOOTPROTO=static
+			NM_CONTROLLED=no
+
+service network restart
+ 
+
+	VM CONFIG
+		/etc/sysconfig/network-scripts/ifcfg-vlan904
+			DEVICE=vlan904
+			TYPE=Ethernet
+			BOOTPROTO=none
+			HWADDR=52:54:00:44:78:7a
+			IPADDR=219.0.203.43
+			NETMASK=255.255.255.0
+			IPV6INIT=no
+			MTU=1500
+			NM_CONTROLLED=no
+			ONBOOT=yes
+
+	PHY CONFIG
+		DEVICE=vlan732
+		TYPE=Ethernet
+		BOOTPROTO=static
+		PHYSDEV=eth1
+		VLAN=yes
+		VLAN_NAME_TYPE=VLAN_PLUS_VID_NO_PAD
+		IPADDR=10.99.48.4
+		NETMASK=255.255.255.0
+		IPV6INIT=no
+		MTU=1500
+		NM_CONTROLLED=no
+		USERCTL=no
+		ONBOOT=yes
+
+
+NETWORK TROUBLESHOOTING 
+brctl show
+brctl showmacs
+ensure all interface are up
+	ip a
+ethtool <interface name>
+
+VCONFIG INSTALL (Note this is not a persistent configuration)
+yum install epel-release
+yum install vconfig
+create vlan
+	vconfig add bond1 904
+create bridge
+	brctl addbr br904
+add vlan to bridge
+	brctl addif br904 bond1.904
+bring up interfaces
+	ifup br904
+  	ifup bond1.904

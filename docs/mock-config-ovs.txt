@@ -1,0 +1,40 @@
+ovs-vsctl --no-wait -- init -- set Open_vSwitch . db-version=7.12.1"
+ovs-vsctl --no-wait set Open_vSwitch . ovs-version=2.4.0 \"external-ids:system-id=\\\"2889156f-cdd2-4346-acfb-ec11bb842089\\\"\" \"system-type=\\\"unknown\\\"\" \"system-version=\\\"unknown\\\"\""
+ovs-vsctl add-br br0
+ovs-vsctl add-bond br0 bond0 ens2f0 ens2f1
+ovs-vsctl set port bond0 lacp=active
+ovs-vsctl del-port br0 bond0
+ovs-vsctl add-bond br0 bond0 ens2f0 ens2f1 trunks=904
+ovs-vsctl del-br br0
+ovs-vsctl add-br br0
+ovs-vsctl add-bond br0 bond0 ens2f0 ens2f1 balance−slb trunks=811,904,400
+ovs-vsctl add-port br0 vlan904 tag=904 -- set interface vlan904 type=internal
+ovs-vsctl del-br br0
+ovs-vsctl add-br br0
+ovs-vsctl add-port br0 vlan904 tag=904 -- set interface vlan904 type=internal
+ovs-vsctl add-bond br0 bond0 ens2f0 ens2f1 vlan_mode=trunk bond_mode=balance-slb
+ovs-vsctl add-port br0 vlan811 tag=811 -- set interface vlan811 type=internal
+ovs-vsctl set Bridge br0 other_config:mcast-snooping-flood-unregistered=true
+ovs-vsctl set Bridge br0 other_config:mcast-snooping-flood-unregistered=false
+ovs-vsctl set port bond0 other_config:mcast-snooping-flood-unregistered=false
+ovs-vsctl set port bond0 other_config:mcast-snooping-flood-unregistered=true
+ovs-vsctl set Bridge br0 other_config:mcast-snooping-flood-unregistered=true
+ovs-vsctl set Bridge br0 other_config:mcast-snooping-aging-time=300
+ovs-vsctl set port bond0 other_config:mcast-snooping-aging-time=300
+ovs-vsctl set Bridge br0 other_config:mcast-snooping-table-size=2048
+ovs-vsctl set port bond0 other_config:mcast-snooping-table-size=2048
+ovs-vsctl set Bridge br0 mcast_snooping_enable=true
+ovs-vsctl set port bond0 other_config:mcast-snooping-flood-unregistered=false
+ovs-vsctl set Bridge br0 other_config:mcast-snooping-flood-unregistered=false
+ovs-vsctl set port vlan904 trunks=904
+ovs-vsctl set port bond0 bond_mode=active-backup
+ovs-vsctl set Bridge br0 mcast_snooping_enable=false
+ovs-vsctl set port bond0 other_config:mcast-snooping-flood-unregistered=true
+ovs-vsctl set Bridge br0 other_config:mcast-snooping-flood-unregistered=true
+ovs-vsctl set interface ens2f0 other-config:enable-vlan-splinters=true
+ovs-vsctl set interface ens2f1 other-config:enable-vlan-splinters=true
+ovs-vsctl set interface ens2f1 other-config:enable-vlan-splinters=dalse
+ovs-vsctl set interface ens2f0 other-config:enable-vlan-splinters=false
+ovs-vsctl set Bridge br0 other_config:mcast-snooping-flood-unregistered=false
+ovs-vsctl set port bond0 other_config:mcast-snooping-flood-unregistered=false
+ovs-vsctl set Bridge br0 mcast_snooping_enable=true

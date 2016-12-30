@@ -1,0 +1,44 @@
+ovs-vsctl --no-wait -- init -- set Open_vSwitch . db-version=7.6.2"
+ovs-vsctl --no-wait set Open_vSwitch . ovs-version=2.3.2 \"external-ids:system-id=\\\"c8be3d25-7673-4198-8790-839d819717c7\\\"\" \"system-type=\\\"unknown\\\"\" \"system-version=\\\"unknown\\\"\""
+ovs-vsctl add-br br0 -- add-bond br0 br0-up eth5 eth1 eth0 eth2 eth4 eth3
+ovs-vsctl set port br0 tag=0
+ovs-vsctl --timeout=5 -- --if-exists del-port vnet0 -- add-port br0 vnet0 -- set Interface vnet0 \"external-ids:attached-mac=\\\"52:54:00:b6:0b:a1\\\"\" -- set Interface vnet0 \"external-ids:iface-id=\\\"52be0a99-3c00-4ebd-8105-19067602b801\\\"\" -- set Interface vnet0 \"external-ids:vm-id=\\\"4a79070a-e8f2-4489-9e14-2aed7241657b\\\"\" -- set Interface vnet0 external-ids:iface-status=active
+ovs-vsctl set port br0 tag=3
+ovs-vsctl --timeout=5 -- --if-exists del-port vnet0
+ovs-vsctl --timeout=5 -- --if-exists del-port vnet0 -- add-port br0 vnet0 tag=3 -- set Interface vnet0 \"external-ids:attached-mac=\\\"52:54:00:b6:0b:a1\\\"\" -- set Interface vnet0 \"external-ids:iface-id=\\\"156cff8a-1244-4e3a-bda5-2bdda5baed6c\\\"\" -- set Interface vnet0 \"external-ids:vm-id=\\\"4a79070a-e8f2-4489-9e14-2aed7241657b\\\"\" -- set Interface vnet0 external-ids:iface-status=active
+ovs-vsctl --timeout=5 -- --if-exists del-port vnet1 -- add-port br0 vnet1 tag=3 -- set Interface vnet1 \"external-ids:attached-mac=\\\"52:54:00:b6:0b:a1\\\"\" -- set Interface vnet1 \"external-ids:iface-id=\\\"156cff8a-1244-4e3a-bda5-2bdda5baed6c\\\"\" -- set Interface vnet1 \"external-ids:vm-id=\\\"4a79070a-e8f2-4489-9e14-2aed7241657b\\\"\" -- set Interface vnet1 external-ids:iface-status=active
+ovs-vsctl del-port br0 br0-up
+ovs-vsctl add-bond br0 bond0 eth2 eth3
+ovs-vsctl set interface eth2 other-config:enable-vlan-splinters=true
+ovs-vsctl set interface eth3 other-config:enable-vlan-splinters=true
+ovs-vsctl --may-exist add-port br0 br0-dhcp -- set Interface br0-dhcp type=vxlan options:remote_ip=10.35.0.214 options:key=1
+ovs-vsctl --may-exist add-port br0 br0-arp -- set Interface br0-arp type=vxlan options:remote_ip=192.168.5.2 options:key=1
+ovs-vsctl --may-exist add-port br0 br0-dhcp -- set Interface br0-dhcp type=vxlan options:remote_ip=10.35.0.201 options:key=1
+ovs-vsctl add-port br0 tap0 tag=3100
+ovs-vsctl add-port br0 tap1 tag=3132
+ovs-vsctl add-port br0 tap2 tag=3136
+ovs-vsctl add-port br0 tap3 tag=3148
+ovs-vsctl add-port br0 tap4 tag=3100
+ovs-vsctl add-port br0 tap5 tag=3132
+ovs-vsctl add-port br0 tap6 tag=3136
+ovs-vsctl add-port br0 tap7 tag=3148
+ovs-vsctl del-port tap4
+ovs-vsctl del-port tap5
+ovs-vsctl del-port tap6
+ovs-vsctl del-port tap7
+ovs-vsctl add-port br0 tap4 tag=3100
+ovs-vsctl add-port br0 tap5 tag=3132
+ovs-vsctl add-port br0 tap6 tag=3136
+ovs-vsctl add-port br0 tap7 tag=3148
+ovs-vsctl del-port tap4
+ovs-vsctl del-port tap5
+ovs-vsctl del-port tap6
+ovs-vsctl del-port tap7
+ovs-vsctl add-port br0 tap4 tag=3100
+ovs-vsctl add-port br0 tap5 tag=3132
+ovs-vsctl add-port br0 tap6 tag=3136
+ovs-vsctl add-port br0 tap7 tag=3148
+ovs-vsctl del-port tap4
+ovs-vsctl del-port tap5
+ovs-vsctl del-port tap6
+ovs-vsctl del-port tap7

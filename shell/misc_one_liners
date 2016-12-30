@@ -1,0 +1,23 @@
+sudo mkisofs -o ks.iso -no-emul-boot -c boot.cat -boot-load-size 4 -hide boot.bin -b isolinux.bin -boot-info-table -R -J -v -T temp_image/
+
+for i in $(seq 1 13);do ssh -t -o StrictHostKeyChecking=no   dev$i "sudo puppet agent --test --tags=developeraccounts" && ssh -t -o StrictHostKeyChecking=no qa$i "sudo puppet agent --test --tags=developeraccounts "; done
+
+python -c 'import crypt; print(crypt.crypt("pass", "$6!*^66AS&"))'
+
+Log parsing
+
+cat prod |sort -k4nr >> prod_sorted
+cat prod_sorted | sed -n '/01\/Sep\/2015:14:30:00/ ,/01\/Sep\/2015:15:35:00/p' >> outage.log
+cat outage.log  |awk {'print $1'} |sort  |uniq -c | sort -k1nr | awk {'print $2'} >> outages_ips
+for i in $(cat outages_ips); do whois $i |grep Organization: && echo $i && echo -------------------   ;done >> outage_matches.txt
+cat outage.log  |awk {'print $1'} |sort  |uniq -c | sort -k1nr >> outage_ip_count
+
+
+xen script
+
+get vm ip
+xe vm-param-list uuid=3259e40d-da8e-42e0-39eb-c0d7bc1fbb35 |grep -Eo '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}'
+
+xe template-list |grep DEVQA
+xe vm-install template="DEVQA_Template" new-name-label="CLIDeploy"
+xe vm-start vm=CLIDeploy

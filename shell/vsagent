@@ -1,0 +1,109 @@
+#!/bin/bash
+##THIS FILE IS MANAGED BY PUPPET. DO NOT EDIT MANUALLY
+#
+# vsagent script
+#
+# chkconfig: 
+# description: vsagent
+
+# pidfile: /var/run/vsagent/vsagent.pid
+# config: /usr/java/vsagent/conf/agent.config
+
+# Source function library.
+. /etc/init.d/functions
+
+
+
+prog='vsagent'
+
+#Set Default
+
+if [ -z "$VSAGENT_PIDFILE" ]; then
+  VSAGENT_PIDFILE=/var/run/vsagent/vsagent.pid
+fi
+export VSAGENT_PIDFILE
+
+
+start() {
+  echo -n "Starting $prog: "
+  if [ -f $VSAGENT_PIDFILE ]; then
+    read ppid < $VSAGENT_PIDFILE
+    if [ `ps --pid $ppid 2> /dev/null | grep -c $ppid 2> /dev/null` -eq '1' ];  then
+      echo -n "$prog is already running"
+      failure
+      echo
+      return 1 
+    else
+      rm -f $VSAGENT_PIDFILE
+    fi
+  fi
+su - jboss -c "/usr/java/vsagent/bin/vsagent.sh -config /usr/java/vsagent/conf/agent.config --list "> /dev/null 2>&1 & 
+if [ ! -d /var/run/vsagent/ ]; then
+mkdir /var/run/vsagent/ && chown -R jboss:jboss /var/run/vsagent
+fi
+sleep 5
+pgrep -f vsagent |awk 'END{print}' > $VSAGENT_PIDFILE
+
+
+
+  count=0
+  
+  success
+  echo
+  return 0
+}
+
+stop() {
+  echo -n $"Stopping $prog: "
+  count=0;
+
+  if [ -f $VSAGENT_PIDFILE ]; then
+    	kpid=`cat $VSAGENT_PIDFILE`
+   
+    # Try issuing SIGTERM
+    	kill -HUP $kpid
+    	rm -f $VSAGENT_PIDFILE
+    	success
+  		echo
+    else
+    	printf "%s\n" "pidfile not found"
+  fi
+  
+ 
+}
+
+status() {
+  if [ -f $VSAGENT_PIDFILE ]; then
+    read ppid < $VSAGENT_PIDFILE
+    if [ `ps --pid $ppid 2> /dev/null | grep -c $ppid 2> /dev/null` -eq '1' ]; then
+      echo "$prog is running (pid $ppid)"
+      return 0
+    else
+      echo "$prog dead but pid file exists"
+      return 1
+    fi
+  fi
+  echo "$prog is not running"
+  return 3
+}
+
+case "$1" in
+  start)
+      start
+      ;;
+  stop)
+      stop
+      ;;
+  restart)
+      $0 stop
+      $0 start
+      ;;
+  status)
+      status
+      ;;
+  *)
+      ## If no parameters are given, print which are avaiable.
+      echo "Usage: $0 {start|stop|status|restart}"
+      exit 1
+      ;;
+esac
