@@ -1,1 +1,0 @@
-/usr/bin/nfdump -R /var/cache/nfdump/flows/live/564DD437BBE0279DF013B34F2B17CF33/2015-07-15/nfcapd.201507150000  -q -N -m -A srcip,dstip -o extended -f ./filter > flows_sample
