@@ -1,0 +1,61 @@
+#!/usr/bin/expect -f
+# Expect script to supply root/admin password for remote ssh server
+# and execute command.
+# match_max 1000000
+
+proc run_exec { command } {
+send --  ${command}
+expect   {
+         -re {^.*\#.$} {  }
+         fullbuffer {
+               exp_continue;
+                }
+            timeout { exit }
+        }
+set output $expect_out(buffer)
+
+
+return $output
+
+}
+
+set password password
+set ipaddr [lrange $argv 0 0]
+set port [lrange $argv 1 1]
+set username runscript
+#set scriptname [lrange $argv 2 2]
+#set arg1 [lrange $argv 3 3]
+set timeout 500
+# now connect to remote UNIX box (ipaddr) with given script to execute
+    set pid [exp_spawn ssh -l $username $ipaddr]
+
+# send_user "pis is $pid\n"
+if {$pid < 1}  {exit 0}
+# $arg1
+# send blank line (\r) to make sure we get back to gui
+while 1 {
+
+  expect {
+         -re {^.*\#.$} { break }
+         "*>" { break }
+         "*(passwor" { break }
+         "*closed" { break }
+         "*yes\/no" { send -- "yes\r" }
+         "*assword:*" { send -- "$password\r" }
+         # "closed by" { exit }
+            timeout { exit }
+         }
+      }
+set output $expect_out(buffer)
+# send_user "string out is $output \n"
+if [string match "*denied*" $output] then  {exit 0}
+if [string match "*closed*" $output] then  {exit 0}
+ run_exec "term len 0 \r"
+run_exec "sh ip cache fl \| inc 06 27D8\r"
+#run_exec "copy run start\r"
+run_exec "exit\r"
+
+# expect eof
+# puts "we are all done \n"
+exit
+

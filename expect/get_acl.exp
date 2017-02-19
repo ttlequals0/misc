@@ -1,0 +1,139 @@
+#!/usr/bin/expect -f
+# Expect script to supply root/admin password for remote ssh server
+# and execute command.
+
+proc run_exec { command } {
+send --  ${command}
+expect   {
+         -re {^.*\#.?$} {  }
+         fullbuffer {
+               exp_continue;
+                }
+            timeout { exit }
+        }
+set output $expect_out(buffer)
+
+return $output
+
+}
+
+match_max 100000
+set password password
+set ipaddr [lrange $argv 0 0]
+set prot [lrange $argv 1 1]
+set username runscript
+#set scriptname [lrange $argv 2 2]
+#set arg1 [lrange $argv 3 3]
+set timeout 50
+# now connect to remote UNIX box (ipaddr) with given script to execute
+if [string match "telnet" $prot ] {
+    set pid [exp_spawn telnet $ipaddr]
+   } else {
+    set pid [exp_spawn ssh -l $username $ipaddr]
+   }
+# send_user "pis is $pid\n"
+if {$pid < 1}  {exit 0}
+# $arg1
+# send blank line (\r) to make sure we get back to gui
+while 1 {
+
+  expect {
+         -re "^.*\#.?$" { break }
+         "*>" { break }
+         "*(passwor" { break }
+         "*closed" { break }
+         "sername" {
+                    send -- "$username\r"
+                   }
+
+         "*yes\/no" { send -- "yes\r" }
+         "*assword:*" { send -- "$password\r" }
+         # "closed by" { exit }
+            timeout { exit }
+         }
+      }
+set output $expect_out(buffer)
+# send_user "string out is $output \n"
+if [string match "*denied*" $output] then  {exit 0}
+if [string match "*closed*" $output] then  {exit 0}
+if [string match {119*2[45][012]} $ipaddr] then {
+
+            } else {
+            if [string match {117*} $ipaddr] then {
+               set password password
+               } else {
+               if [string match {119*1\.24[567]} $ipaddr] then {
+
+                  } else {
+                  set password password
+                  }
+               }
+
+            }
+set output $expect_out(buffer)
+if [string match "*>" $output] {
+
+send -- "ena\r"
+while 1 {
+
+  expect {
+         -re "^.*\#.$" { break }
+         "*>" { send -- "ena\r"
+                if [string match {password} $password] then {
+                   set password password
+                   } else {
+                   set password password
+                   }
+              }
+         "*closed" { break }
+         "*yes\/no" { send -- "yes\r" }
+         "*assword:*" { send -- "$password\r" }
+         # "closed by" { exit }
+            timeout { exit }
+         }
+      }
+}
+
+
+
+
+set output $expect_out(buffer)
+# send_user "string out is $output \n"
+if [string match "*denied*" $output] then  {exit 0}
+if [string match "*closed*" $output] then  {exit 0}
+
+run_exec "term len 0 \r"
+set string [run_exec "sh int descr \| inc up.*up.*\[iI\]\[dD\]\r"]
+if [string match "*Invalid input detected*" $string] {
+   send -- "exit\r";
+   exit
+   }
+   #send -- "sh ip prot summ\r"
+   #expect "*>"
+   set lines [split $string \r]
+   foreach line $lines { 
+        scan $line "%s %s" inter rest
+     #if [string match "G*" $inter] { 
+       # send_user $line
+          if {[regexp "\[A-Z].\[0-9]+\/\[0-9]" $inter]} {
+            regexp "\[A-Z].\[0-9]+\/\[0-9]" string
+            set str [run_exec "sh run interface $inter \| inc access\r"]
+            #send -- "sh run int $inter \| inc acccess\r"
+            set slines [split $str \r]
+            foreach lline $slines {
+            if [string match "*access-group*" $lline] {
+               scan $lline " %s %s %s %s" junk junk alist junk
+               run_exec "sh access-list $alist \| inc 10200\r"
+
+               }
+              } 
+            # send_user "we have a match $line \n"
+            }
+      #  }
+       }
+#   }
+
+send -- "exit\r"
+expect eof
+
+

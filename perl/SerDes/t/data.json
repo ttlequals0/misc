@@ -1,0 +1,32 @@
+{
+   "arrayref1" : [
+      4,
+      5,
+      6
+   ],
+   "array1" : [
+      "a",
+      "b",
+      "c",
+      1,
+      2,
+      3,
+      {
+         "three" : 3,
+         "four" : 4
+      }
+   ],
+   "hashref1" : {
+      "three" : 3,
+      "four" : 4
+   },
+   "hash1" : {
+      "one" : "ONE",
+      "two" : 2,
+      "array2" : [
+         4,
+         5,
+         6
+      ]
+   }
+}

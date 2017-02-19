@@ -1,0 +1,128 @@
+#!/usr/bin/expect -f
+# Expect script to supply root/admin password for remote ssh server
+# and execute command.
+# match_max 1000000
+
+proc run_ena { command } {
+set password password
+
+send -- "ena\r"
+while 1 {
+
+  expect {
+         -re "^.*\#" { break }
+         "*assword:*" { send -- "$password\r" }
+         "*>" { send -- "ena\r"
+                if [string match {password} $password] then {
+                   set password password
+                   } else {
+                   set password password
+                   }
+              }
+         "*closed" { break }
+         "*yes\/no" { send -- "yes\r" }
+         "*Access denied*" { break }
+         # "closed by" { exit }
+            timeout { exit }
+         }
+      }
+
+set output $expect_out(buffer)
+return $output
+
+}
+proc run_exec { command } {
+send --  ${command}
+expect   {
+         -re {^.*\#.?$} {  }
+         fullbuffer {
+               exp_continue;
+                }
+            timeout { exit }
+        }
+set output $expect_out(buffer)
+
+
+return $output
+
+}
+proc run_cmd { command } {
+send --  ${command}
+while 1 {
+ 
+ expect   {
+         -re {^.*\#.?$} { break }
+         -re {\?} { send -- "\r" }
+         fullbuffer {
+               exp_continue;
+                }
+            timeout { exit }
+        }
+ set output $expect_out(buffer)
+ }
+
+return $output
+
+}
+
+set password password
+set ipaddr [lrange $argv 0 0]
+set toopen [lrange $argv 1 1]
+set third [lrange $argv 2 2]
+set username runscript
+if [string match "TTNET*" $third] then  {
+   set password $third
+   set username ttnetadm
+   } 
+#set scriptname [lrange $argv 2 2]
+#set arg1 [lrange $argv 3 3]
+set timeout 500
+   set fp [open $toopen r]
+     set commands [read $fp]
+     close $fp
+   # puts $commands
+   # exit 0
+# now connect to remote UNIX box (ipaddr) with given script to execute
+    set pid [exp_spawn ssh -l $username $ipaddr]
+
+# send_user "pis is $pid\n"
+if {$pid < 1}  {exit 0}
+# $arg1
+# send blank line (\r) to make sure we get back to gui
+while 1 {
+
+  expect {
+         "*#" { break }
+         "*>" { break }
+         "*#" { break }
+         "*(passwor" { break }
+         "*closed" { break }
+         "*yes\/no" { send -- "yes\r" }
+         "*assword:*" { send -- "$password\r" }
+         # "closed by" { exit }
+            timeout { exit }
+         }
+      }
+set output $expect_out(buffer)
+# send_user "string out is $output \n"
+if [string match "*denied*" $output] then  {exit 0}
+if [string match "*closed*" $output] then  {exit 0}
+
+if [string match "*>" $output] then  {
+   run_ena ""   
+   }
+
+set expect_out(buffer) ""
+run_exec "conf t\r"
+   set cmds [split $commands "\n"]
+     foreach line $cmds {
+          # do some line processing here
+     run_exec "$line\r"
+     }
+run_exec "exit\r"
+run_exec "exit\r"
+
+# expect eof
+# puts "we are all done \n"
+exit
+

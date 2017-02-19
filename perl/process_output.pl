@@ -186,7 +186,7 @@ $device = shift;
 open(IN,"$device") or die "cant open $device file \n";
 @lines = <IN>;
 close(IN);
-$device =~ s/\/home\/mptak\/vip_rep\/configs\///;
+$device =~ s/\/home\/user\/vip_rep\/configs\///;
 $device =~ s/\.cfg//;
 $ip="";
  # find device name - pattern xxx>term
@@ -295,13 +295,13 @@ $rep=`cat acl_hits_report.csv`;
 $smtp = Net::SMTP->new("119.0.0.206");
 
 $smtp->mail($ENV{USER});
-    $smtp->to('marek.ptak\@tradingtechnologies.com');
-    $smtp->to('TTNETSecurity\@tradingtechnologies.com');
-    $smtp->to('TTNETNetwork\@tradingtechnologies.com');
+    $smtp->to('user\@domain');
+    $smtp->to('user\@domain');
+    $smtp->to('user\@domain');
 
     $smtp->data();
 #   $smtp->datasend("From: me\@$ENV{USER}");
-    $smtp->datasend("To: marek.ptak\@tradingtechnologies.com\n");
+    $smtp->datasend("To: user\@domain\n");
     $smtp->datasend("Subject: ACL counter Alert, Internet router $dev $ip ");
 
     $smtp->datasend("\n");

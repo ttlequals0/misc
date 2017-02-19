@@ -1,0 +1,19 @@
+<?xml version='1.0' standalone='yes'?>
+<opt>
+  <array1>a</array1>
+  <array1>b</array1>
+  <array1>c</array1>
+  <array1>1</array1>
+  <array1>2</array1>
+  <array1>3</array1>
+  <array1 four="4" three="3" />
+  <arrayref1>4</arrayref1>
+  <arrayref1>5</arrayref1>
+  <arrayref1>6</arrayref1>
+  <hash1 one="ONE" two="2">
+    <array2>4</array2>
+    <array2>5</array2>
+    <array2>6</array2>
+  </hash1>
+  <hashref1 four="4" three="3" />
+</opt>

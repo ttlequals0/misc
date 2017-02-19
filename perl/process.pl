@@ -21,9 +21,9 @@ $dest = 'localhost';
 ## mysql user database name
 $db ="network_inv";
 ## mysql database user name
-$user = "mptak";
+$user = "user";
 ## mysql database password
-$pass = "ext1683";
+$pass = "password";
 ## user hostname : This should be "localhost" but it can be diffrent too
 $host="119.0.0.205";
 

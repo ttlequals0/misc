@@ -1,0 +1,46 @@
+#!/usr/bin/expect -f
+# Expect script to supply root/admin password for remote ssh server
+# and execute command.
+match_max 100000
+set password en1gma31
+set ipaddr [lrange $argv 0 0]
+set prot [lrange $argv 1 1]
+set username secadmin
+#set scriptname [lrange $argv 2 2]
+#set arg1 [lrange $argv 3 3]
+set timeout 40
+# now connect to remote UNIX box (ipaddr) with given script to execute
+    set pid [exp_spawn telnet 119.33.0.51 7019]
+    set password Bp3pp3rs
+    send -- "\r"
+    send -- "$username\r"
+   
+# send_user "pis is $pid\n"
+if {$pid < 1}  {exit 0}
+# $arg1
+# send blank line (\r) to make sure we get back to gui
+while 1 {
+
+  expect {
+         "*>" { break }
+         "*(passwor" { break }
+         "*closed" { break }
+         "*yes\/no" { send -- "yes\r" }
+         "*assword:*" { send -- "$password\r" }
+         "*login:*" { send -- "$username\r" }
+         # "closed by" { exit }
+            timeout { exit }
+         }
+      }
+set output $expect_out(buffer)
+# send_user "string out is $output \n"
+if [string match "*denied*" $output] then  {exit 0}
+if [string match "*closed*" $output] then  {exit 0}
+set timeout 400
+# now connect to remote UNIX box (ipaddr) with given script to execute
+set command "\r"
+send --  ${command}
+expect "*>"
+interact
+
+

@@ -53,7 +53,7 @@ virt-manager -c qemu+ssh://root@10.206.0.42/system?socket=/var/run/libvirt/libvi
  knife ssh "name:*cap*" "cat /proc/cpuinfo | grep process | wc -l | grep 40"  --attribute ipaddress --config 
 
 #add ssh key 
-if [ ! -d ~/.ssh ]; then mkdir ~/.ssh ; fi && chmod 700 ~/.ssh && echo "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCyqySDh7gyUVMzkBPVmEursQmU2DSlVp81jGX8RnKAHLzZVcJnZUcH/TzmSShNL9MqxHmigY/tOplk+slvuaMvLaDWlzuiG4XGrrjw+2dXrU9ELXn+NNxYIjj8m2II6JR6YUl9BkfnFzKNUwEYiiuL1O2ya9fw2yjYCgij2f/VXGA9yH6LSlBr23CeSr76k0tePNkVakjBYWrLWqviZ1ZnF7WozwDaBLJwL2Z48p4kg6H2/HN8EkW6bIXM8T6eBNOqNnpiOWtyrMIpUyWpf6LAeyRuZ7DUQ3WYkDL7hdRzPRHbExGpWpw1l8wPMXO+mMmTgdvYpTIITGUeh/sMT/jD dominick.krachtus@tradingtechnologies.com" >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys
+if [ ! -d ~/.ssh ]; then mkdir ~/.ssh ; fi && chmod 700 ~/.ssh && echo "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCyqySDh7gyUVMzkBPVmEursQmU2DSlVp81jGX8RnKAHLzZVcJnZUcH/TzmSShNL9MqxHmigY/tOplk+slvuaMvLaDWlzuiG4XGrrjw+2dXrU9ELXn+NNxYIjj8m2II6JR6YUl9BkfnFzKNUwEYiiuL1O2ya9fw2yjYCgij2f/VXGA9yH6LSlBr23CeSr76k0tePNkVakjBYWrLWqviZ1ZnF7WozwDaBLJwL2Z48p4kg6H2/HN8EkW6bIXM8T6eBNOqNnpiOWtyrMIpUyWpf6LAeyRuZ7DUQ3WYkDL7hdRzPRHbExGpWpw1l8wPMXO+mMmTgdvYpTIITGUeh/sMT/jD dominick.krachtus@domain" >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys
 ##esxi host config##
 #enable ssh 
 Get-VMHost 10.111.0.74 | Foreach {Start-VMHostService -HostService ($_ | Get-VMHostService | Where { $_.Key -eq "TSM-SSH"} ) ;$_| Get-AdvancedSetting UserVars.SuppressShellWarning | Set-AdvancedSetting -Value 1 -Confirm:$false ; $_ | Get-VMHostService | Where { $_.Key -eq "TSM-SSH"} |Set-VMHostService -Policy "on"}
