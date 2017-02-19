@@ -76,7 +76,7 @@ for i in $(ifconfig -a | sed 's/[ \t].*//;/^\(lo\|\)$/d' |sed 's/://') ; do ifco
 #Add VLAN 
 sudo wget -q http://10.127.0.30/bootstrap/querySN -O /tmp/querySN && sudo wget -q http://10.127.0.30/bootstrap/addNIC -O /tmp/addNIC  && sudo chmod +x /tmp/querySN && sudo chmod +x /tmp/addNIC && sudo /tmp/querySN --action setexchange --vlan VLAN738
 
-#view lldp info 
+#view lldp or CDP info 
 tcpdump -nn -v -i vlan723 -s 1500 -c 1 '(ether[12:2]=0x88cc or ether[20:2]=0x2000)'
 
 #vmware find delta of missed packets
