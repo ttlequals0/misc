@@ -13,7 +13,7 @@ then
 		do 
 		 echo "Running unmap on $SAN_STORAGE"  2>&1 | tee -a "$LOGFILE"
 		 esxcli storage vmfs unmap -u "$SAN_STORAGE" 2>&1 | tee -a "$LOGFILE"
-		 grep "Unmap: Done" /var/log/hostd.log | grep "$SAN_STORAGE" |awk -F ':' '{print $3 $4}'  2>&1 | tee -a "$LOGFILE"
+		 grep "Unmap: Done" /var/log/hostd.log | grep "$SAN_STORAGE" |awk -F ':' '{print $5 $6}'  2>&1 | tee -a "$LOGFILE"
 	done
 	END=$(date +%s)
 	DIFF=$((END - START))
